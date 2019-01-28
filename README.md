@@ -11,7 +11,7 @@ First, you need to download pro using the wrapper (which requires Java 11)
 
 then you can build and run using
 ```
-  ./pro
+  ./pro/bin/pro
 ```
 
 ### What does this project do exactly
