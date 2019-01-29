@@ -1,6 +1,12 @@
 language: java
 jdk: openjdk11
 
+matrix:
+  include:
+    - os: linux
+    - os: osx
+    - os: windows
+     
 install:
   - java pro_wrapper.java version
 
