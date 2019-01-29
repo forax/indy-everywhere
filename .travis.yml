@@ -5,7 +5,7 @@ matrix:
   include:
     - os: linux
     - os: osx
-    - os: windows
+#    - os: windows
      
 install:
   - java pro_wrapper.java version
