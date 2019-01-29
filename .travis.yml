@@ -1,11 +1,10 @@
-sudo: true
 language: java
 jdk: openjdk11
 
 matrix:
   include:
     - os: linux
-    - os: osx
+#    - os: osx
 #    - os: windows
      
 install:
