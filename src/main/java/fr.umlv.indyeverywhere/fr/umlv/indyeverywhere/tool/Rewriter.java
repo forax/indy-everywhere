@@ -16,6 +16,7 @@ import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -32,6 +33,17 @@ public class Rewriter {
       "bsm_meth",
       MethodType.methodType(CallSite.class, Lookup.class, String.class, MethodType.class).toMethodDescriptorString(),
       false);
+  private static final Pattern PATCHER_PATTERN = Pattern.compile("_+([^_]*)_+");
+  
+  private static String patchName(String name, String descriptor) {
+    var matcher = PATCHER_PATTERN.matcher(name);
+    if (!matcher.matches()) {  // patch method name ?
+      return name;
+    }
+    var newName = matcher.group(1);
+    System.out.println("  patch method name " + name + descriptor + " to " + newName + descriptor);
+    return newName;
+  }
   
   private static boolean needRewrite(String owner, String name, String descriptor) {
     return !owner.startsWith("java");
@@ -44,7 +56,7 @@ public class Rewriter {
     reader.accept(new ClassVisitor(ASM7, writer) {
       @Override
       public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-        var mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+        var mv = super.visitMethod(access, patchName(name, descriptor), descriptor, signature, exceptions);
         return new MethodVisitor(ASM7, mv) {
           @Override
           public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
@@ -68,19 +80,20 @@ public class Rewriter {
           
           @Override
           public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-            if (needRewrite(owner, name, descriptor)) {
+            var newName = patchName(name, descriptor);
+            if (needRewrite(owner, newName, descriptor)) {
               switch(opcode) {
               case INVOKEINTERFACE:
               case INVOKEVIRTUAL:
-                System.out.println("  invoke[virtual|interface] " + owner + '.' + name + ' ' + descriptor);
-                super.visitInvokeDynamicInsn(name,  "(L" + owner + ';' + descriptor.substring(1), METH_BSM);
+                System.out.println("  invoke[virtual|interface] " + owner + '.' + newName + ' ' + descriptor);
+                super.visitInvokeDynamicInsn(newName,  "(L" + owner + ';' + descriptor.substring(1), METH_BSM);
                 return;
               default:
               //case INVOKESPECIAL:
               //case INVOKESTATIC:
               } 
             }
-            super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+            super.visitMethodInsn(opcode, owner, newName, descriptor, isInterface);
           }
         };
       }
